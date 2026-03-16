@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::{Command, Stdio};
 mod builtins;
+mod util;
+use crate::util::colours::*;
 use builtins::*;
 
 struct Input {
@@ -11,10 +13,12 @@ struct Input {
 
 type BuiltinFn = fn(&[String]) -> Result<(), String>;
 
+const PROMPT: &str = "$ ";
+
 fn main() {
     loop {
         let builtins = get_builtins();
-        print!("$ ");
+        print!("{}", PROMPT);
         std::io::stdout().flush().unwrap();
 
         let mut line = String::new();
@@ -117,13 +121,13 @@ fn run_command(cmd: String, args: Vec<String>) {
         Ok(status) => {
             if !status.success() {
                 match status.code() {
-                    Some(code) => eprintln!("process exited with code {}", code),
-                    None => eprintln!("process terminated by signal"),
+                    Some(code) => eprintln!("{BOLD_RED}process exited with code {}{RESET}", code),
+                    None => eprintln!("{BOLD_RED}process terminated by signal{RESET}"),
                 }
             }
         }
         Err(err) => {
-            eprintln!("error running command: {}", err);
+            eprintln!("{BOLD_RED}error running command: {}{RESET}", err);
         }
     }
 }
