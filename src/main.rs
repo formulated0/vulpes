@@ -15,6 +15,7 @@ fn main() {
             .read_line(&mut line)
             .expect("failed to read line");
 
+        // break on EOF (ctrl-d on unix ctrl-z on win)
         if bytes == 0 {
             break;
         }
@@ -80,8 +81,12 @@ fn parse_input(line: &str) -> Option<Input> {
         args.push(current_arg);
     }
 
-    Some(Input {
-        command: args.remove(0),
-        args,
-    })
+    let command;
+    if args.len() > 0 {
+        command = args.remove(0);
+    } else {
+        command = String::new();
+    }
+
+    Some(Input { command, args })
 }
