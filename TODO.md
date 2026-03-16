@@ -1,4 +1,3 @@
-* `help`
 * command history
   * `history` command
 * piping (i/o)

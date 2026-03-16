@@ -45,3 +45,29 @@ pub fn cd(args: &[String]) -> Result<(), String> {
     std::env::set_current_dir(path).map_err(|e| format!("{BOLD_RED}cd: {}{RESET}", e))?;
     Ok(())
 }
+
+pub fn help(args: &[String]) -> Result<(), String> {
+    println!("{PURPLE}┌─ vulpes help menu ─────────────────────────────┐{RESET}");
+	println!(" vulpes supports most system commands by default.\n");
+
+    let commands = vec![
+        ("cd", "change directory"),
+        ("pwd", "print working directory"),
+        ("ls", "list directory contents"),
+        ("cat", "display file contents"),
+        ("echo", "print text"),
+        ("mkdir", "create directory"),
+        ("rm", "remove files or directories"),
+        ("cp", "copy files or directories"),
+        ("mv", "move or rename files"),
+        ("exit", "exit the shell"),
+        ("help", "show this help menu"),
+    ];
+
+    for (cmd, desc) in commands {
+        println!("{GREEN} {:12}{RESET} {}", cmd, desc);
+    }
+
+    println!("{PURPLE}└────────────────────────────────────────────────┘{RESET}");
+    Ok(())
+}
