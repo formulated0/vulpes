@@ -1,13 +1,19 @@
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::{Command, Stdio};
+mod builtins;
+use builtins::*;
 
 struct Input {
     command: String,
     args: Vec<String>,
 }
 
+type BuiltinFn = fn(&[String]) -> Result<(), String>;
+
 fn main() {
     loop {
+        let builtins = get_builtins();
         print!("$ ");
         std::io::stdout().flush().unwrap();
 
@@ -26,9 +32,16 @@ fn main() {
             None => continue,
         };
 
-        // println!("{} {:?}", input.command, input.args);
         let (cmd, args) = alias(input.command, input.args);
-        run_command(cmd, args)
+
+        if let Some(&builtin) = builtins.get(cmd.as_str()) {
+            match builtin(&args) {
+                Ok(()) => {}
+                Err(err) => eprintln!("{}", err),
+            }
+        } else {
+            run_command(cmd, args);
+        }
     }
 }
 
@@ -115,6 +128,13 @@ fn run_command(cmd: String, args: Vec<String>) {
     }
 }
 
+fn get_builtins() -> HashMap<&'static str, BuiltinFn> {
+    let mut builtins: HashMap<&str, BuiltinFn> = HashMap::new();
+    builtins.insert("cd", cd);
+    builtins.insert("exit", exit);
+    builtins
+}
+
 // common bash aliases for ease of use
 fn alias(cmd: String, args: Vec<String>) -> (String, Vec<String>) {
     match cmd.as_str() {
@@ -133,16 +153,12 @@ fn alias(cmd: String, args: Vec<String>) -> (String, Vec<String>) {
             (cmd, alias_args)
         }
         "rm" | "cp" | "mv" => {
-            let mut alias_args = vec![
-                "-i".to_string(),
-            ];
+            let mut alias_args = vec!["-i".to_string()];
             alias_args.extend(args);
             (cmd, alias_args)
         }
         "df" | "du" => {
-            let mut alias_args = vec![
-                "-h".to_string(),
-            ];
+            let mut alias_args = vec!["-h".to_string()];
             alias_args.extend(args);
             (cmd, alias_args)
         }
