@@ -1,34 +1,87 @@
 use std::io::{self, Write};
 
-struct Input<'a> {
-    command: &'a str,
-    args: Vec<&'a str>,
+struct Input {
+    command: String,
+    args: Vec<String>,
 }
 
 fn main() {
-	loop {
-		print!("$ ");
-		std::io::stdout().flush().unwrap();
-		
-		let mut line = String::new();
-		let bytes = io::stdin().read_line(&mut line).expect("failed to read line");
-		
-		if bytes == 0 {
-			break
-		}
-		
-		if let Some(input) = parse_input(&line) {
-            println!("{} {:?}", input.command, input.args);
+    loop {
+        print!("$ ");
+        std::io::stdout().flush().unwrap();
+
+        let mut line = String::new();
+        let bytes = io::stdin()
+            .read_line(&mut line)
+            .expect("failed to read line");
+
+        if bytes == 0 {
+            break;
         }
-	}
+
+        let input = match parse_input(&line.trim()) {
+            Some(input) => input,
+            None => continue,
+        };
+
+        println!("{} {:?}", input.command, input.args);
+    }
 }
 
-fn parse_input(line: &str) -> Option<Input<'_>> {
-    let mut parts = line.split_whitespace();
-    let command = parts.next()?;
+fn parse_input(line: &str) -> Option<Input> {
+    #[derive(PartialEq, Eq)]
+    enum QuoteState {
+        None,
+        Single,
+        Double,
+    }
+
+    let mut state = QuoteState::None;
+    let mut current_arg = String::new();
+    let mut args = vec![];
+
+    for c in line.chars() {
+        match c {
+            '\'' => {
+                if state == QuoteState::None {
+                    state = QuoteState::Single;
+                } else if state == QuoteState::Single {
+                    state = QuoteState::None;
+                } else if state == QuoteState::Double {
+                    current_arg.push(c)
+                }
+            }
+            '"' => {
+                if state == QuoteState::None {
+                    state = QuoteState::Double;
+                } else if state == QuoteState::Double {
+                    state = QuoteState::None;
+                } else if state == QuoteState::Single {
+                    current_arg.push(c)
+                }
+            }
+            _ if c.is_whitespace() => {
+                if state == QuoteState::None {
+                    if !current_arg.is_empty() {
+                        args.push(current_arg);
+                    }
+                    current_arg = String::new(); // clears buf
+                } else {
+                    current_arg.push(c);
+                }
+            }
+            _ => {
+                current_arg.push(c);
+            }
+        }
+    }
+
+    if !current_arg.is_empty() {
+        args.push(current_arg);
+    }
 
     Some(Input {
-        command,
-        args: parts.collect(),
+        command: args.remove(0),
+        args,
     })
 }
