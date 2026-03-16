@@ -4,6 +4,8 @@
 a minimal shell written in rust.
 
 > work in progress
+> 
+> supports (most) system commands
 
 ## quick start
 
