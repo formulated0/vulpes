@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::process::{Command, Stdio};
 
 struct Input {
     command: String,
@@ -25,7 +26,9 @@ fn main() {
             None => continue,
         };
 
-        println!("{} {:?}", input.command, input.args);
+        // println!("{} {:?}", input.command, input.args);
+        let (cmd, args) = alias(input.command, input.args);
+        run_command(cmd, args)
     }
 }
 
@@ -89,4 +92,60 @@ fn parse_input(line: &str) -> Option<Input> {
     }
 
     Some(Input { command, args })
+}
+
+fn run_command(cmd: String, args: Vec<String>) {
+    match Command::new(cmd)
+        .args(args)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+    {
+        Ok(status) => {
+            if !status.success() {
+                match status.code() {
+                    Some(code) => eprintln!("process exited with code {}", code),
+                    None => eprintln!("process terminated by signal"),
+                }
+            }
+        }
+        Err(err) => {
+            eprintln!("error running command: {}", err);
+        }
+    }
+}
+
+// common bash aliases for ease of use
+fn alias(cmd: String, args: Vec<String>) -> (String, Vec<String>) {
+    match cmd.as_str() {
+        "ls" => {
+            let mut alias_args = vec![
+                "-F".to_string(),
+                "--color=auto".to_string(),
+                "--show-control-chars".to_string(),
+            ];
+            alias_args.extend(args);
+            (cmd, alias_args)
+        }
+        "grep" | "egrep" | "fgrep" => {
+            let mut alias_args = vec!["--color=auto".to_string()];
+            alias_args.extend(args);
+            (cmd, alias_args)
+        }
+        "rm" | "cp" | "mv" => {
+            let mut alias_args = vec![
+                "-i".to_string(),
+            ];
+            alias_args.extend(args);
+            (cmd, alias_args)
+        }
+        "df" | "du" => {
+            let mut alias_args = vec![
+                "-h".to_string(),
+            ];
+            alias_args.extend(args);
+            (cmd, alias_args)
+        }
+        _ => (cmd, args),
+    }
 }
