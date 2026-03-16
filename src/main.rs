@@ -13,12 +13,20 @@ struct Input {
 
 type BuiltinFn = fn(&[String]) -> Result<(), String>;
 
-const PROMPT: &str = "$ ";
+const PROMPT: &str = "> ";
 
 fn main() {
     loop {
         let builtins = get_builtins();
-        print!("{}", PROMPT);
+
+        let path = std::env::current_dir()
+            .unwrap()
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        print!(".../{} {}", path, PROMPT);
         std::io::stdout().flush().unwrap();
 
         let mut line = String::new();

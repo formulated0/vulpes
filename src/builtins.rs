@@ -18,6 +18,8 @@ pub fn exit(args: &[String]) -> Result<(), String> {
 }
 
 pub fn cd(args: &[String]) -> Result<(), String> {
+    let current = std::env::current_dir().unwrap();
+
     if args.is_empty() {
         return Ok(());
     }
@@ -25,20 +27,21 @@ pub fn cd(args: &[String]) -> Result<(), String> {
     let path = match args[0].as_str() {
         "~" => dirs::home_dir()
             .ok_or_else(|| format!("{BOLD_RED}cd: could not determine home directory{RESET}"))?,
-        ".." => std::env::current_dir()
-            .map_err(|e| format!("{BOLD_RED}cd: {}{RESET}", e))?
+        ".." => current
             .parent()
             .ok_or_else(|| format!("{BOLD_RED}cd: no parent directory{RESET}"))?
             .to_path_buf(),
-        "-" => {
-            return Err(format!(
-                "{YELLOW}cd: previous directory not yet implemented{RESET}"
-            ));
-        }
+        "-" => std::env::var("OLDPWD")
+            .map(PathBuf::from)
+            .map_err(|_| format!("{BOLD_RED}cd: OLDPWD not set{RESET}"))?,
         "/" => PathBuf::from("/"),
         _ => PathBuf::from(&args[0]),
     };
 
+    // save current directory before changing
+    unsafe {
+        std::env::set_var("OLDPWD", current.to_string_lossy().to_string());
+    }
     std::env::set_current_dir(path).map_err(|e| format!("{BOLD_RED}cd: {}{RESET}", e))?;
     Ok(())
 }
