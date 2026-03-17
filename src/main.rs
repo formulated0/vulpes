@@ -11,6 +11,7 @@ use std::cell::RefCell;
 struct Input {
     command: String,
     args: Vec<String>,
+    background: bool,
 }
 
 type BuiltinFn = fn(&[String]) -> Result<(), String>;
@@ -31,7 +32,7 @@ fn main() {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        
+
         let prompt = format!(".../{} {}", path, PROMPT_CHAR);
 
         match r1.readline(&prompt) {
@@ -46,6 +47,7 @@ fn main() {
                 };
 
                 let (cmd, args) = alias(input.command, input.args);
+                let background = input.background;
 
                 if let Some(&builtin) = builtins.get(cmd.as_str()) {
                     match builtin(&args) {
@@ -53,7 +55,7 @@ fn main() {
                         Err(err) => eprintln!("{}", err),
                     }
                 } else {
-                    run_command(cmd, args);
+                    run_command(cmd, args, background);
                 }
             }
             Err(rustyline::error::ReadlineError::Eof) => break, // ctrl-d
@@ -122,26 +124,57 @@ fn parse_input(line: &str) -> Option<Input> {
         command = String::new();
     }
 
-    Some(Input { command, args })
+    let mut background = false;
+
+    if let Some(last) = args.last() {
+        if last == "&" {
+            background = true;
+            args.pop();
+        }
+    }
+
+    Some(Input {
+        command,
+        args,
+        background,
+    })
 }
 
-fn run_command(cmd: String, args: Vec<String>) {
-    match Command::new(cmd)
-        .args(args)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status()
-    {
-        Ok(status) => {
-            if !status.success() {
-                match status.code() {
-                    Some(code) => eprintln!("{BOLD_RED}process exited with code {}{RESET}", code),
-                    None => eprintln!("{BOLD_RED}process terminated by signal{RESET}"),
+fn run_command(cmd: String, args: Vec<String>, background: bool) {
+    if !background {
+        match Command::new(cmd)
+            .args(args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()
+        {
+            Ok(status) => {
+                if !status.success() {
+                    match status.code() {
+                        Some(code) => {
+                            eprintln!("{BOLD_RED}process exited with code {}{RESET}", code)
+                        }
+                        None => eprintln!("{BOLD_RED}process terminated by signal{RESET}"),
+                    }
                 }
             }
+            Err(err) => {
+                eprintln!("{BOLD_RED}error running command: {}{RESET}", err);
+            }
         }
-        Err(err) => {
-            eprintln!("{BOLD_RED}error running command: {}{RESET}", err);
+    } else {
+        match Command::new(cmd)
+            .args(args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()
+        {
+            Ok(child) => {
+                println!("[{}] running in background", child.id())
+            }
+            Err(err) => {
+                eprintln!("{BOLD_RED}error running command: {}{RESET}", err);
+            }
         }
     }
 }

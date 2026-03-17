@@ -7,6 +7,3 @@
   * `>>` append
 * input redirection
   * `<` operator
-* background processes
-  * non-blocking
-  * `sleep 2 &`
