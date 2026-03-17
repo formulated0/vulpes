@@ -10,4 +10,3 @@
 * background processes
   * non-blocking
   * `sleep 2 &`
-* up/down arrow for history

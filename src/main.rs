@@ -5,6 +5,7 @@ mod builtins;
 mod util;
 use crate::util::colours::*;
 use builtins::*;
+use rustyline::DefaultEditor;
 use std::cell::RefCell;
 
 struct Input {
@@ -18,10 +19,11 @@ thread_local! {
     pub static HISTORY: RefCell<Vec<String>> = RefCell::new(Vec::new());
 }
 
-const PROMPT: &str = "> ";
+const PROMPT_CHAR: &str = "> ";
 
 fn main() {
-	let builtins = get_builtins();	
+    let builtins = get_builtins();
+    let mut r1 = DefaultEditor::new().unwrap();
     loop {
         let path = std::env::current_dir()
             .unwrap()
@@ -29,38 +31,34 @@ fn main() {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-
-        print!(".../{} {}", path, PROMPT);
-        std::io::stdout().flush().unwrap();
-
-        let mut line = String::new();
-        let bytes = io::stdin()
-            .read_line(&mut line)
-            .expect("failed to read line");
-
-        // break on EOF (ctrl-d on unix ctrl-z on win)
-        if bytes == 0 {
-            break;
-        }
-
-        let input = match parse_input(&line.trim()) {
-            Some(input) => input,
-            None => continue,
-        };
         
-        if !input.command.is_empty() {
-            HISTORY.with(|h| h.borrow_mut().push(line.trim().to_string()));
-        }
+        let prompt = format!(".../{} {}", path, PROMPT_CHAR);
 
-        let (cmd, args) = alias(input.command, input.args);
-        
-        if let Some(&builtin) = builtins.get(cmd.as_str()) {
-            match builtin(&args) {
-                Ok(()) => {}
-                Err(err) => eprintln!("{}", err),
+        match r1.readline(&prompt) {
+            Ok(line) => {
+                r1.add_history_entry(&line).ok();
+                if !line.trim().is_empty() {
+                    HISTORY.with(|h| h.borrow_mut().push(line.trim().to_string()));
+                }
+                let input = match parse_input(&line.trim()) {
+                    Some(input) => input,
+                    None => continue,
+                };
+
+                let (cmd, args) = alias(input.command, input.args);
+
+                if let Some(&builtin) = builtins.get(cmd.as_str()) {
+                    match builtin(&args) {
+                        Ok(()) => {}
+                        Err(err) => eprintln!("{}", err),
+                    }
+                } else {
+                    run_command(cmd, args);
+                }
             }
-        } else {
-            run_command(cmd, args);
+            Err(rustyline::error::ReadlineError::Eof) => break, // ctrl-d
+            Err(rustyline::error::ReadlineError::Interrupted) => continue, // ctrl-c
+            Err(e) => eprintln!("error: {}", e),
         }
     }
 }
