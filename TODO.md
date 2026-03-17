@@ -1,5 +1,3 @@
-* command history
-  * `history` command
 * piping (i/o)
   * first single stage pipelines
   * then multi stage
@@ -12,3 +10,4 @@
 * background processes
   * non-blocking
   * `sleep 2 &`
+* up/down arrow for history

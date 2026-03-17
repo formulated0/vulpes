@@ -5,6 +5,7 @@ mod builtins;
 mod util;
 use crate::util::colours::*;
 use builtins::*;
+use std::cell::RefCell;
 
 struct Input {
     command: String,
@@ -13,12 +14,15 @@ struct Input {
 
 type BuiltinFn = fn(&[String]) -> Result<(), String>;
 
+thread_local! {
+    pub static HISTORY: RefCell<Vec<String>> = RefCell::new(Vec::new());
+}
+
 const PROMPT: &str = "> ";
 
 fn main() {
+	let builtins = get_builtins();	
     loop {
-        let builtins = get_builtins();
-
         let path = std::env::current_dir()
             .unwrap()
             .file_name()
@@ -43,9 +47,13 @@ fn main() {
             Some(input) => input,
             None => continue,
         };
+        
+        if !input.command.is_empty() {
+            HISTORY.with(|h| h.borrow_mut().push(line.trim().to_string()));
+        }
 
         let (cmd, args) = alias(input.command, input.args);
-
+        
         if let Some(&builtin) = builtins.get(cmd.as_str()) {
             match builtin(&args) {
                 Ok(()) => {}
@@ -143,6 +151,7 @@ fn run_command(cmd: String, args: Vec<String>) {
 fn get_builtins() -> HashMap<&'static str, BuiltinFn> {
     let mut builtins: HashMap<&str, BuiltinFn> = HashMap::new();
     builtins.insert("cd", cd);
+    builtins.insert("history", history);
     builtins.insert("exit", exit);
     builtins.insert("help", help);
     builtins

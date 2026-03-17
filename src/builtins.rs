@@ -1,5 +1,6 @@
 use crate::util::colours::*;
 use std::path::PathBuf;
+use crate::HISTORY;
 
 pub fn exit(args: &[String]) -> Result<(), String> {
     if args.len() > 1 {
@@ -46,6 +47,15 @@ pub fn cd(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
+pub fn history(args: &[String]) -> Result<(), String> {
+	HISTORY.with(|h| {
+        for (i, entry) in h.borrow().iter().enumerate() {
+            println!("{GREEN}{:>4}{RESET}  {}", i + 1, entry);
+        }
+    });
+	Ok(())
+}
+
 pub fn help(args: &[String]) -> Result<(), String> {
     println!("{PURPLE}┌─ vulpes help menu ─────────────────────────────┐{RESET}");
 	println!(" vulpes supports most system commands by default.\n");
@@ -71,3 +81,4 @@ pub fn help(args: &[String]) -> Result<(), String> {
     println!("{PURPLE}└────────────────────────────────────────────────┘{RESET}");
     Ok(())
 }
+
