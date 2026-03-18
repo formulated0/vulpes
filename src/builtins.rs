@@ -1,6 +1,6 @@
+use crate::HISTORY;
 use crate::util::colours::*;
 use std::path::PathBuf;
-use crate::HISTORY;
 
 pub fn exit(args: &[String]) -> Result<(), String> {
     if args.len() > 1 {
@@ -48,17 +48,61 @@ pub fn cd(args: &[String]) -> Result<(), String> {
 }
 
 pub fn history(args: &[String]) -> Result<(), String> {
-	HISTORY.with(|h| {
-        for (i, entry) in h.borrow().iter().enumerate() {
-            println!("{GREEN}{:>4}{RESET}  {}", i + 1, entry);
+    if !args.is_empty() {
+        match args[0].as_str() {
+            "-c" | "--clear" => {
+                HISTORY.with(|history| {
+                    history.borrow_mut().clear();
+                });
+            }
+            "-h" | "--help" => {
+                println!("{PURPLE}history{RESET}\nusage: ")
+            }
+            // last N history entries
+            _ => match args[0].parse::<usize>() {
+                Ok(n) => {
+                    HISTORY.with(|h| {
+                        let history = h.borrow();
+                        let len = history.len();
+                        let start = len.saturating_sub(n);
+
+                        for (i, entry) in history.iter().enumerate().skip(start) {
+                            println!("{GREEN}{:>4}{RESET}  {}", i + 1, entry);
+                        }
+                    });
+                }
+                Err(_) => {
+                    eprintln!("{BOLD_RED}history: invalid argument{RESET}");
+                }
+            },
+        }
+    } else {
+        HISTORY.with(|h| {
+            for (i, entry) in h.borrow().iter().enumerate() {
+                println!("{GREEN}{:>4}{RESET}  {}", i + 1, entry);
+            }
+        });
+    }
+    Ok(())
+}
+
+// !!
+pub fn bangbang(args: &[String]) -> Result<(), String> {
+    HISTORY.with(|history| {
+        let history = history.borrow();
+
+        if let Some(second_last) = history.iter().rev().nth(1) {
+            println!("{}", second_last);
         }
     });
-	Ok(())
+    Ok(())
 }
+
+
 
 pub fn help(args: &[String]) -> Result<(), String> {
     println!("{PURPLE}┌─ vulpes help menu ─────────────────────────────┐{RESET}");
-	println!(" vulpes supports most system commands by default.\n");
+    println!(" vulpes supports most system commands by default.\n");
 
     let commands = vec![
         ("cd", "change directory"),
@@ -81,4 +125,3 @@ pub fn help(args: &[String]) -> Result<(), String> {
     println!("{PURPLE}└────────────────────────────────────────────────┘{RESET}");
     Ok(())
 }
-

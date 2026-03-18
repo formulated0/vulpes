@@ -183,6 +183,7 @@ fn get_builtins() -> HashMap<&'static str, BuiltinFn> {
     let mut builtins: HashMap<&str, BuiltinFn> = HashMap::new();
     builtins.insert("cd", cd);
     builtins.insert("history", history);
+    builtins.insert("!!", bangbang);
     builtins.insert("exit", exit);
     builtins.insert("help", help);
     builtins

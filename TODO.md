@@ -1,3 +1,12 @@
+* more builtins
+	* `pwd`
+	* `!!`/`!n`
+	* `which`/`type`
+	* `alias`
+	* `version`
+	* `env`
+	* `export`
+	* `unset`
 * piping (i/o)
   * first single stage pipelines
   * then multi stage
