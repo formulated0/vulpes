@@ -86,20 +86,6 @@ pub fn history(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-// !!
-pub fn bangbang(args: &[String]) -> Result<(), String> {
-    HISTORY.with(|history| {
-        let history = history.borrow();
-
-        if let Some(second_last) = history.iter().rev().nth(1) {
-            println!("{}", second_last);
-        }
-    });
-    Ok(())
-}
-
-
-
 pub fn help(args: &[String]) -> Result<(), String> {
     println!("{PURPLE}┌─ vulpes help menu ─────────────────────────────┐{RESET}");
     println!(" vulpes supports most system commands by default.\n");

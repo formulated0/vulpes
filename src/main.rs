@@ -25,6 +25,7 @@ const PROMPT_CHAR: &str = "> ";
 fn main() {
     let builtins = get_builtins();
     let mut r1 = DefaultEditor::new().unwrap();
+
     loop {
         let path = std::env::current_dir()
             .unwrap()
@@ -37,11 +38,46 @@ fn main() {
 
         match r1.readline(&prompt) {
             Ok(line) => {
-                r1.add_history_entry(&line).ok();
-                if !line.trim().is_empty() {
-                    HISTORY.with(|h| h.borrow_mut().push(line.trim().to_string()));
+                let mut line = line.trim().to_string();
+
+                // history 
+                if line.starts_with('!') {
+                    let cmd = if line == "!!" {
+                        HISTORY.with(|h| h.borrow().iter().rev().next().cloned())
+                    } else {
+                        line[1..].parse::<usize>().ok().and_then(|n| {
+                            HISTORY.with(|h| {
+                                let h = h.borrow();
+                                if n == 0 || n > h.len() {
+                                    None
+                                } else {
+                                    Some(h[n - 1].clone())
+                                }
+                            })
+                        })
+                    };
+
+                    match cmd {
+                        Some(cmd) => {
+                            line = cmd;
+                        }
+                        None => {
+                            eprintln!("invalid history reference");
+                            continue;
+                        }
+                    }
                 }
-                let input = match parse_input(&line.trim()) {
+
+                // skip empty input after expansion
+                if line.is_empty() {
+                    continue;
+                }
+
+                // store expanded command in history
+                r1.add_history_entry(&line).ok();
+                HISTORY.with(|h| h.borrow_mut().push(line.clone()));
+
+                let input = match parse_input(&line) {
                     Some(input) => input,
                     None => continue,
                 };
@@ -49,6 +85,7 @@ fn main() {
                 let (cmd, args) = alias(input.command, input.args);
                 let background = input.background;
 
+                // run either a builtin or syscmd
                 if let Some(&builtin) = builtins.get(cmd.as_str()) {
                     match builtin(&args) {
                         Ok(()) => {}
@@ -183,7 +220,6 @@ fn get_builtins() -> HashMap<&'static str, BuiltinFn> {
     let mut builtins: HashMap<&str, BuiltinFn> = HashMap::new();
     builtins.insert("cd", cd);
     builtins.insert("history", history);
-    builtins.insert("!!", bangbang);
     builtins.insert("exit", exit);
     builtins.insert("help", help);
     builtins

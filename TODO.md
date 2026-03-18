@@ -1,6 +1,5 @@
 * more builtins
 	* `pwd`
-	* `!!`/`!n`
 	* `which`/`type`
 	* `alias`
 	* `version`
